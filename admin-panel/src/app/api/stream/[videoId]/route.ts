@@ -54,8 +54,8 @@ export async function GET(
     );
   }
 
-  // ── 3. Generate signed URL (expires in 120 seconds) ───────────────────────
-  const signedUrl = signBunnyUrl(video.bunnyVideoId, 120);
+  // ── 3. Generate signed embed URL ─────────────────────────────────────────
+  const embedUrl = signBunnyUrl(video.bunnyVideoId, 3600);
 
   // ── 4. Build watermark identity string ────────────────────────────────────
   const identity = telegramUser.username
@@ -63,11 +63,9 @@ export async function GET(
     : `${telegramUser.first_name} · ID ${telegramUser.id}`;
 
   return NextResponse.json({
-    signedUrl,
+    embedUrl,
     title: video.title,
     levelName: video.level.name,
     watermark: identity,
-    // Thumbnail URL (no auth needed for thumbnails)
-    thumbnailUrl: `https://${process.env.BUNNY_CDN_HOSTNAME}/${video.bunnyVideoId}/thumbnail.jpg`,
   });
 }
