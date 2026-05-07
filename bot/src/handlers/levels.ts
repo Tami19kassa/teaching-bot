@@ -1,7 +1,7 @@
 import { Context, InlineKeyboard } from "grammy";
+import { InputFile } from "grammy";
 import { prisma } from "../lib/prisma";
-
-const ADMIN_PANEL_URL = process.env.ADMIN_PANEL_URL!;
+import { signBunnyDownloadUrl } from "../lib/bunny";
 
 /**
  * /levels — Show all active levels with inline buttons to purchase.
@@ -35,7 +35,7 @@ export async function handleLevels(ctx: Context): Promise<void> {
 }
 
 /**
- * /mylevels — Show enrolled levels with video list buttons.
+ * /mylevels — Show enrolled levels with video buttons.
  */
 export async function handleMyLevels(ctx: Context): Promise<void> {
   const telegramId = ctx.from!.id;
@@ -79,22 +79,15 @@ export async function handleMyLevels(ctx: Context): Promise<void> {
       continue;
     }
 
-    // One Mini App button per video
     const keyboard = new InlineKeyboard();
     for (const video of videos) {
-      // web_app opens the Next.js player page inside Telegram
-      keyboard
-        .webApp(
-          `▶️ ${video.title}`,
-          `${ADMIN_PANEL_URL}/player/${video.id}`
-        )
-        .row();
+      keyboard.text(`▶️ ${video.title}`, `watch:${video.id}`).row();
     }
 
     await ctx.reply(
       `📘 <b>${level.name}</b>\n\n` +
         `${videos.length} video${videos.length !== 1 ? "s" : ""} available.\n` +
-        `Tap to watch — videos open securely inside Telegram:`,
+        `Select a video to watch:`,
       {
         parse_mode: "HTML",
         reply_markup: keyboard,
@@ -105,13 +98,90 @@ export async function handleMyLevels(ctx: Context): Promise<void> {
 }
 
 /**
- * Callback: watch:<videoId>  (kept for backwards compatibility)
- * Now redirects users to use /mylevels which has Mini App buttons.
+ * Callback: watch:<videoId>
+ * Downloads video from Bunny and sends it as a native Telegram video
+ * with protect_content: true — blocks screenshots AND screen recording.
  */
 export async function handleWatchCallback(ctx: Context): Promise<void> {
   await ctx.answerCallbackQuery();
-  await ctx.reply(
-    "Use /mylevels to access your videos.",
-    { protect_content: true }
-  );
+
+  const data = ctx.callbackQuery?.data ?? "";
+  const videoId = parseInt(data.split(":")[1], 10);
+  if (isNaN(videoId)) return;
+
+  const telegramId = ctx.from!.id;
+
+  // Load video
+  const video = await prisma.video.findUnique({
+    where: { id: videoId },
+    include: { level: true },
+  });
+
+  if (!video) {
+    await ctx.reply("Video not found.", { protect_content: true });
+    return;
+  }
+
+  // Verify access
+  const access = await prisma.userLevel.findFirst({
+    where: {
+      user: { telegramId: BigInt(telegramId) },
+      levelId: video.levelId,
+    },
+  });
+
+  if (!access) {
+    await ctx.reply("🚫 You don't have access to this video.", {
+      protect_content: true,
+    });
+    return;
+  }
+
+  // Get user info for watermark message
+  const user = await prisma.user.findUnique({
+    where: { telegramId: BigInt(telegramId) },
+    select: { firstName: true, username: true },
+  });
+
+  const identity = user?.username
+    ? `@${user.username}`
+    : `${user?.firstName ?? "User"} (ID: ${telegramId})`;
+
+  // Send loading message
+  const loadingMsg = await ctx.reply("⏳ Loading your video...", {
+    protect_content: true,
+  });
+
+  try {
+    // Generate a signed download URL from Bunny (direct MP4, not embed)
+    const downloadUrl = signBunnyDownloadUrl(video.bunnyVideoId);
+
+    // Send watermark notice
+    await ctx.reply(
+      `🔒 <b>Licensed Content</b>\n\n` +
+        `This video is licensed exclusively to <b>${identity}</b>.\n` +
+        `Sharing or redistributing is strictly prohibited.`,
+      { parse_mode: "HTML", protect_content: true }
+    );
+
+    // Stream the video directly from Bunny URL to Telegram
+    // Telegram downloads it server-side — no temp file needed on our server
+    await ctx.replyWithVideo(new InputFile({ url: downloadUrl }), {
+      caption: `📹 <b>${video.title}</b>\n📘 ${video.level.name}`,
+      parse_mode: "HTML",
+      protect_content: true,   // ← blocks screenshots AND screen recording
+      supports_streaming: true,
+    });
+
+    // Delete the loading message
+    await ctx.api.deleteMessage(ctx.chat!.id, loadingMsg.message_id);
+
+  } catch (err) {
+    console.error("[watch] Error sending video:", err);
+    await ctx.api.editMessageText(
+      ctx.chat!.id,
+      loadingMsg.message_id,
+      "❌ Failed to load video. Please try again."
+    );
+  }
 }
