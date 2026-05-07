@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+admin-panel/node_modules/
+bot/node_modules/
+
+# Build outputs
+admin-panel/.next/
+bot/dist/
+
+# Environment files — never commit these
+.env
+.env.local
+admin-panel/.env
+admin-panel/.env.local
+bot/.env
+bot/.env.local
+
+# Prisma generated client
+admin-panel/node_modules/@prisma/
+bot/node_modules/@prisma/
+
+# Misc
+.DS_Store
+*.log
+.vercel

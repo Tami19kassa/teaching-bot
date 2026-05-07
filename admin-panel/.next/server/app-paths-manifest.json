@@ -1,7 +1,22 @@
 {
-  "/login/page": "app/login/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/admin/levels/route": "app/api/admin/levels/route.js",
   "/api/admin/levels/[id]/videos/route": "app/api/admin/levels/[id]/videos/route.js",
-  "/admin/levels/page": "app/admin/levels/page.js",
+  "/api/admin/login/route": "app/api/admin/login/route.js",
+  "/api/admin/payments/[id]/approve/route": "app/api/admin/payments/[id]/approve/route.js",
+  "/api/admin/receipt-proxy/route": "app/api/admin/receipt-proxy/route.js",
+  "/api/admin/payments/[id]/reject/route": "app/api/admin/payments/[id]/reject/route.js",
+  "/api/admin/videos/[id]/process/route": "app/api/admin/videos/[id]/process/route.js",
+  "/api/admin/payments/route": "app/api/admin/payments/route.js",
+  "/api/auth/telegram/route": "app/api/auth/telegram/route.js",
+  "/api/videos/[levelId]/route": "app/api/videos/[levelId]/route.js",
+  "/page": "app/page.js",
+  "/api/stream/[videoId]/route": "app/api/stream/[videoId]/route.js",
+  "/api/admin/videos/[id]/status/route": "app/api/admin/videos/[id]/status/route.js",
+  "/player/[videoId]/page": "app/player/[videoId]/page.js",
+  "/watch/[levelId]/page": "app/watch/[levelId]/page.js",
+  "/login/page": "app/login/page.js",
+  "/admin/users/page": "app/admin/users/page.js",
   "/admin/payments/page": "app/admin/payments/page.js",
-  "/admin/users/page": "app/admin/users/page.js"
+  "/admin/levels/page": "app/admin/levels/page.js"
 }
