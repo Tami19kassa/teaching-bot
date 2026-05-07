@@ -1,0 +1,19 @@
+{
+  "name": "telegram-teaching-bot-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:admin": "npm run dev --prefix admin-panel",
+    "dev:bot": "npm run dev --prefix bot",
+    "db:migrate": "npx prisma migrate dev --schema=prisma/schema.prisma",
+    "db:generate": "npx prisma generate --schema=prisma/schema.prisma",
+    "db:studio": "npx prisma studio --schema=prisma/schema.prisma",
+    "setup": "npm install --prefix admin-panel && npm install --prefix bot && npm run db:generate"
+  },
+  "devDependencies": {
+    "prisma": "^5.14.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  }
+}
